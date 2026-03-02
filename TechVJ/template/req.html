@@ -535,6 +535,7 @@
         </footer>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"></script>
+    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
 
     <!-- PLYR.JS SCRIPT -->
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
@@ -558,6 +559,7 @@
   <script>
 const fileUrl = "{{file_url}}";
 const isHLS = fileUrl.includes(".m3u8");
+const isDASH = fileUrl.includes(".mpd");
 const resumeKey = "bbk_resume_" + btoa(fileUrl.slice(-30));
 
 {% raw %}
@@ -885,7 +887,65 @@ function scheduleBlackCheck() {
             sources: [{ src: fileUrl, type: 'application/x-mpegURL' }]
         };
         safariPlayer.on('ready', () => attachPlayerEvents(safariPlayer));
+        
+    
+    } else if (isDASH) {
 
+        // ══════════════════════════════════════
+        //  DASH (.mpd) path — with quality
+        // ══════════════════════════════════════
+        const dashInstance = dashjs.MediaPlayer().create();
+        dashInstance.initialize(videoEl, fileUrl, false);
+
+        dashInstance.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
+            clearTimeout(slowTimer);
+            hideLoader();
+
+            const bitrateList = dashInstance.getBitrateInfoListFor('video');
+            const hasMulti = bitrateList && bitrateList.length > 1;
+
+            const heights = hasMulti
+                ? [...new Set(bitrateList.map(b => b.height))].sort((a, b) => b - a)
+                : [];
+            const qualityOptions = hasMulti ? [0, ...heights] : [0];
+
+            const dashPlayer = new Plyr('#player', {
+                controls: [
+                    'play-large','play','progress',
+                    'current-time','duration','mute',
+                    'settings','pip','fullscreen'
+                ],
+                settings: hasMulti ? ['quality', 'speed'] : ['speed'],
+                speed: { selected: 1, options: [0.5, 1, 1.25, 1.5, 2, 3] },
+                i18n: { qualityLabel: { 0: 'Auto' } },
+                quality: {
+                    default: 0,
+                    options: qualityOptions,
+                    forced: true,
+                    onChange: (newQ) => {
+                        if (newQ === 0) {
+                            dashInstance.setAutoSwitchQualityFor('video', true);
+                        } else {
+                            dashInstance.setAutoSwitchQualityFor('video', false);
+                            const idx = bitrateList.findIndex(b => b.height === newQ);
+                            if (idx !== -1) dashInstance.setQualityFor('video', idx);
+                        }
+                    }
+                },
+                dblclickFullscreen: false
+            });
+
+            window.player = dashPlayer;
+            dashPlayer.on('ready', () => attachPlayerEvents(dashPlayer));
+        });
+
+        dashInstance.on(dashjs.MediaPlayer.events.ERROR, () => {
+            hideLoader();
+            showUnsupportedWarning();
+        });
+    
+    
+    
     } else {
 
         // ══════════════════════════════════════

@@ -1,4 +1,3 @@
-
 import re, math, logging, secrets, mimetypes, time
 from info import *
 from aiohttp import web
@@ -72,6 +71,65 @@ async def stream_handler(request: web.Request):
     except Exception as e:
         logging.critical(e.with_traceback(None))
         raise web.HTTPInternalServerError(text=str(e))
+        
+
+
+# ✅ YAHAN ADD KARO - BILKUL END MEIN, Ye direct stream ka kaam karta hai
+
+@routes.get("/stream", allow_head=True)
+async def external_stream_handler(request: web.Request):
+    try:
+        file_url = request.rel_url.query.get("url")
+        file_name = request.rel_url.query.get("name", "video.mp4")
+        
+        if not file_url:
+            raise web.HTTPBadRequest(text="URL parameter missing")
+        
+        import jinja2, urllib.parse
+        file_url = urllib.parse.unquote(file_url)
+        
+        with open("TechVJ/template/req.html") as f:
+            template = jinja2.Template(f.read())
+        
+        return web.Response(
+            text=template.render(
+                file_name=file_name,
+                file_url=file_url,
+                file_size="",
+                file_unique_id=""
+            ),
+            content_type='text/html'
+        )
+    except Exception as e:
+        raise web.HTTPInternalServerError(text=str(e))        
+        
+
+@routes.get("/iframe", allow_head=True)
+async def iframe_handler(request: web.Request):
+    try:
+        url = request.rel_url.query.get("url")
+        title = request.rel_url.query.get("name", "Live Stream")
+        
+        if not url:
+            raise web.HTTPBadRequest(text="URL parameter missing")
+        
+        import jinja2, urllib.parse
+        url = urllib.parse.unquote(url)
+        
+        with open("TechVJ/template/iframe.html") as f:
+            template = jinja2.Template(f.read())
+        
+        return web.Response(
+            text=template.render(
+                title=title,
+                url=url
+            ),
+            content_type='text/html'
+        )
+    except Exception as e:
+        raise web.HTTPInternalServerError(text=str(e))       
+        
+        
 
 @routes.get(r"/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
@@ -214,4 +272,4 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str, chat_i
             "Accept-Ranges": "bytes",
             "Access-Control-Allow-Origin": "*",
         },
-                                                      )
+    )
