@@ -11,7 +11,9 @@ BOT_TOKEN = environ.get('BOT_TOKEN', "")
 FORCE_SUB_CHANNEL = "BabuBhaiKundan"
 
 # Bot settings
-PORT = environ.get("PORT", "8080")
+# Isko aise badal do:
+PORT = int(environ.get("PORT", 8080))
+
 
 # Online Stream and Download
 MULTI_CLIENT = False
