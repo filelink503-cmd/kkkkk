@@ -34,11 +34,12 @@ from BabuBhaiKundan.bot.clients import initialize_clients
 
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
-BabuBhaiKundanBot.start()
-loop = asyncio.get_event_loop()
+
 
 
 async def start():
+    # 👇 YAHAN ADD KARO 👇
+    await BabuBhaiKundanBot.start()
     print('\n')
     print('Initalizing Your Bot')
     bot_info = await BabuBhaiKundanBot.get_me()
@@ -69,13 +70,15 @@ async def start():
     app = web.AppRunner(await web_server())
     await app.setup()
     bind_address = "0.0.0.0"
-    await web.TCPSite(app, bind_address, PORT).start()
+    await web.TCPSite(app, bind_address, int(PORT)).start()
     await idle()
 
 
 if __name__ == '__main__':
+    # 👇 NAYA EVENT LOOP BANANA PADEGA 👇
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info('Service Stopped Bye 👋')
-
