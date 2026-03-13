@@ -202,7 +202,7 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str, chat_i
     
     file_id = await tg_connect.get_file_properties(id, chat_id)
     
-    logging.debug("after calling get_file_properties")
+ logging.debug("after calling get_file_properties")
     
     # ---------------------------------------------------------------
     # 🔥 ROUTE.PY ME BHI HASH CHECK WAPAS CHALU KARO
@@ -215,20 +215,42 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str, chat_i
     
     file_size = file_id.file_size
 
+    # -------------------------------------------------------
+    # RANGE HEADER PARSING (SAFE)
+    # -------------------------------------------------------
     if range_header:
-        from_bytes, until_bytes = range_header.replace("bytes=", "").split("-")
-        from_bytes = int(from_bytes)
-        until_bytes = int(until_bytes) if until_bytes else file_size - 1
+        try:
+            from_bytes, until_bytes = range_header.replace("bytes=", "").split("-")
+            from_bytes = int(from_bytes)
+            until_bytes = int(until_bytes) if until_bytes else file_size - 1
+        except Exception:
+            from_bytes = 0
+            until_bytes = file_size - 1
     else:
         from_bytes = request.http_range.start or 0
         until_bytes = (request.http_range.stop or file_size) - 1
 
+
+    # -----------------------------------------------------------------
+    # 🔥 BABU BHAI SMART CHUNKING SYSTEM (NINJA TECHNIQUE)
+    # -----------------------------------------------------------------
+    is_playing_online = request.rel_url.query.get("mode") == "play"
+
+    if is_playing_online:
+        MAX_CHUNK_LIMIT = 5 * 1024 * 1024
+        if (until_bytes - from_bytes) > MAX_CHUNK_LIMIT:
+            until_bytes = from_bytes + MAX_CHUNK_LIMIT
+    # -----------------------------------------------------------------
+
+
+    # RANGE VALIDATION
     if (until_bytes > file_size) or (from_bytes < 0) or (until_bytes < from_bytes):
         return web.Response(
             status=416,
             body="416: Range not satisfiable",
             headers={"Content-Range": f"bytes */{file_size}"},
         )
+
 
     chunk_size = 1024 * 1024
     until_bytes = min(until_bytes, file_size - 1)
