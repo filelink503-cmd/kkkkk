@@ -43,7 +43,7 @@ async def start():
     await initialize_clients()
     
     # Plugin ko comment karo because bot ko command nhi dena hai
-  '''
+    '''
     # Plugin Loader
     for name in files:
         with open(name) as a:
